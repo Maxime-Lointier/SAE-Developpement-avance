@@ -1,5 +1,6 @@
 {
   "expo": {
+    "scheme": "sae-developpement-avance",
     "name": "SAE-Developpement-avance",
     "slug": "SAE-Developpement-avance",
     "version": "1.0.0",
@@ -24,6 +25,9 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-router"
+    ]
   }
 }
