@@ -1,6 +1,7 @@
 import { Link } from "expo-router";
 import { useEffect, useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, interpolateColor } from "react-native-reanimated";
 import "./global.css"
 
 // --- Configuration de l'API ---
@@ -46,6 +47,77 @@ const darkenColor = (color: string, percent: number) => {
     const G = Math.max(0, Math.min(255, ((num >> 8) & 0x00FF) - amt));
     const B = Math.max(0, Math.min(255, (num & 0x0000FF) - amt));
     return `#${(0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1)}`;
+};
+
+// Composant GenreButton avec animation
+const GenreButton = ({ 
+    genre, 
+    backgroundColorGenre, 
+    isSelected, 
+    onPress 
+}: { 
+    genre: Genre; 
+    backgroundColorGenre: string; 
+    isSelected: boolean; 
+    onPress: () => void;
+}) => {
+    const [isPressed, setIsPressed] = useState(false);
+    const progress = useSharedValue(isSelected ? 1 : 0);
+    const darkColor = darkenColor(backgroundColorGenre, 20);
+
+    // Ne déclencher l'animation que si le bouton n'est pas pressé
+    useEffect(() => {
+        if (!isPressed) {
+            progress.value = withTiming(isSelected ? 1 : 0, {
+                duration: 300,
+            });
+        }
+    }, [isSelected, isPressed]);
+
+    const animatedStyle = useAnimatedStyle(() => {
+        const backgroundColor = interpolateColor(
+            progress.value,
+            [0, 1],
+            [backgroundColorGenre, darkColor]
+        );
+        return {
+            backgroundColor,
+        };
+    });
+
+    return (
+        <Pressable 
+            onPress={onPress} 
+            onPressIn={() => setIsPressed(true)}
+            onPressOut={() => {
+                setIsPressed(false);
+                // Déclencher l'animation après le relâchement
+                progress.value = withTiming(isSelected ? 1 : 0, {
+                    duration: 300,
+                });
+            }}
+            style={styles.genrePressable}
+        >
+            {({ pressed }) => (
+                <Animated.View style={[
+                    styles.genreButton,
+                    animatedStyle,
+                    pressed && { backgroundColor: darkColor }
+                ]}>
+                    {/* Logo : Movie */}
+                    <Image 
+                        source={{ uri: "https://img.icons8.com/sf-black/64/movie.png" }}
+                        style={{ width: 32, height: 32, marginBottom: 8, tintColor: 'white' }}
+                    />
+
+                    {/* Text: Genre Name */}
+                    <Text style={{ color: 'white', fontWeight: '600', fontSize: 16 }}>
+                        {genre.name}
+                    </Text>
+                </Animated.View>
+            )}
+        </Pressable>
+    );
 };
 
 const onBoarding = () => {
@@ -106,30 +178,13 @@ const onBoarding = () => {
                         const isSelected = selectedGenres.includes(genre.id);
                         
                         return (
-                            <Pressable key={genre.id} onPress={() => toggleGenre(genre.id)} style={styles.genrePressable}>
-                                {({ pressed }) => (
-        
-                                    // Le View change de couleur quand sélectionné ou pressé
-                                    <View style={[
-                                        styles.genreButton,
-                                        { backgroundColor: (isSelected || pressed) ? darkenColor(backgroundColorGenre, 20) : backgroundColorGenre }
-                                    ]}>
-                                    
-                                    {/* Logo : Movie */}
-                                    <Image 
-                                        source={{ uri: "https://img.icons8.com/sf-black/64/movie.png" }}
-                                        style={{ width: 32, height: 32, marginBottom: 8, tintColor: 'white' }}
-                                    />
-
-                                    {/* Text: Genre Name */}
-                                    <Text style={{ color: 'white', fontWeight: '600', fontSize: 16 }}>
-                                        {genre.name}
-                                    </Text>
-
-                                    </View>
-                                )}
-                                
-                            </Pressable>
+                            <GenreButton
+                                key={genre.id}
+                                genre={genre}
+                                backgroundColorGenre={backgroundColorGenre}
+                                isSelected={isSelected}
+                                onPress={() => toggleGenre(genre.id)}
+                            />
                         );
                     }) : (
                         <Text style={{ color: 'white', textAlign: 'center', width: '100%' }}>Chargement des genres...</Text>
